@@ -1,5 +1,6 @@
 import sys
 import re
+import collections
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -26,7 +27,9 @@ ua_dict = {}
 
 access_dict = {}
 for i in range(0,24):
-    access_dict[str(i)] = 0
+    num = str(i)
+    if i in range(0,10): num = '0'+num
+    access_dict[num] = 0
 
 time_series = []
 
@@ -61,7 +64,7 @@ with open(fname,'r') as infile:
             
             #count the frequencies of all crawl depths
             http_request = log_segments[4]
-            depth = http_request.count('/')
+            depth = http_request.count('/') - 2
             if depth in crawl_dict:
                 crawl_dict[depth] = crawl_dict[depth] + 1
             else:
@@ -87,22 +90,25 @@ for each in time_series:
     else:
         access_dict[hour] = 1
 
+access_dict = collections.OrderedDict(sorted(access_dict.items()))
 plt.bar(access_dict.keys(),access_dict.values())
 plt.xlabel('Time of day')
 plt.ylabel('Activity')
 plt.show()
 
+attacker_dict = collections.OrderedDict(sorted(attacker_dict.items()))
 plt.bar(attacker_dict.keys(),attacker_dict.values())
 plt.xlabel('Status codes')
 plt.ylabel('Frequencies')
 plt.show()
 
+crawl_dict = collections.OrderedDict(sorted(crawl_dict.items()))
 plt.bar(crawl_dict.keys(),crawl_dict.values())
 plt.xlabel('Crawl depth')
-plt.ylabel('Frequencies')
+plt.ylabel('Frequency')
 plt.show()
 
 plt.bar(ua_dict.keys(),ua_dict.values())
 plt.xlabel('User agent')
-plt.ylabel('Frequencies')
+plt.ylabel('Frequency')
 plt.show()
