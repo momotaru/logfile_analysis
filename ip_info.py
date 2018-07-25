@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 #fname = sys.argv[1]
 fname = 'access_logs.txt'
+#fname = input('Enter name of log file:')
 
 #attacker_ip = sys.argv[2]
 #attarcker_ip = '112.204.10.15'
@@ -21,17 +22,17 @@ log_regex = re.compile((r'(\d+\.\d+\.\d+\.\d+)\s'     #host ip
                        r'"(.*?)"\s'    #referrer
                        r'"(.*?)"'))    #user-agent
 
-attacker_dict = {}
-crawl_dict = {}
-ua_dict = {}
+status_list = ['1XX','2XX','3XX','4XX','5XX']
+status_dict = {i:0 for i in status_list}
 
-access_dict = {}
+depth_dict = {}
+
+#initialize active_hrs_dict with 0 on all hours
+active_hrs_dict = {}
 for i in range(0,24):
     num = str(i)
     if i in range(0,10): num = '0'+num
-    access_dict[num] = 0
-
-time_series = []
+    active_hrs_dict[num] = 0
 
 with open(fname,'r') as infile:
     nlines = len(list(infile))
@@ -52,63 +53,45 @@ with open(fname,'r') as infile:
         #check if the host ip matches our target's ip
         if log_segments[0] == attacker_ip:
             
-            #extract time series
-            time_series.append(log_segments[3])
+            #count active hour frequencies
+            hour = log_segments[3][12:14]
+            active_hrs_dict[hour] = active_hrs_dict[hour] + 1
             
-            #count the frequencies of all status codes
-            status_code = log_segments[5]
-            if status_code in attacker_dict:
-                attacker_dict[status_code] = attacker_dict[status_code] + 1
-            else:
-                attacker_dict[status_code] = 1
+            #count status code frequencies
+            status_code_full = log_segments[5]
+            status_code = status_code_full[0] + 'XX'
+            status_dict[status_code] = status_dict[status_code] + 1 
             
             #count the frequencies of all crawl depths
             http_request = log_segments[4]
-            depth = http_request.count('/') - 2
-            if depth in crawl_dict:
-                crawl_dict[depth] = crawl_dict[depth] + 1
+            depth = http_request.count('/')
+            if depth in depth_dict:
+                depth_dict[depth] = depth_dict[depth] + 1
             else:
-                crawl_dict[depth] = 1
-                
-            #count the frequencies of all user agents
-            user_agent = log_segments[8]
-            ua_machine_regex = re.compile(r'\((.*?);')
-            found = re.search(ua_machine_regex,user_agent)
-            if found:
-                ua_machine = found.group(1)
-            else:
-                print(line)
-            if ua_machine in ua_dict:
-                ua_dict[ua_machine] = ua_dict[ua_machine] + 1
-            else:
-                ua_dict[ua_machine] = 1
+                depth_dict[depth] = 1
 
-for each in time_series:
-    hour = each[12:14]
-    if hour in access_dict:
-        access_dict[hour] = access_dict[hour] + 1
-    else:
-        access_dict[hour] = 1
-
-access_dict = collections.OrderedDict(sorted(access_dict.items()))
-plt.bar(access_dict.keys(),access_dict.values())
+plt.subplot(2,2,1)
+plt.bar(active_hrs_dict.keys(),active_hrs_dict.values())
 plt.xlabel('Time of day')
 plt.ylabel('Activity')
-plt.show()
+for (x,y) in list(active_hrs_dict.items()):
+    if y == 0:continue
+    plt.text(x,y+0.2,y,ha='center',fontsize=8)
 
-attacker_dict = collections.OrderedDict(sorted(attacker_dict.items()))
-plt.bar(attacker_dict.keys(),attacker_dict.values())
+plt.subplot(2,2,2)
+plt.bar(status_dict.keys(),status_dict.values())
 plt.xlabel('Status codes')
 plt.ylabel('Frequencies')
-plt.show()
+for (x,y) in list(status_dict.items()):
+    if y == 0:continue
+    plt.text(x,y+0.2,y,ha='center',fontsize=8)
 
-crawl_dict = collections.OrderedDict(sorted(crawl_dict.items()))
-plt.bar(crawl_dict.keys(),crawl_dict.values())
+plt.subplot(2,2,3)
+plt.bar(depth_dict.keys(),depth_dict.values())
 plt.xlabel('Crawl depth')
 plt.ylabel('Frequency')
-plt.show()
+for (x,y) in list(depth_dict.items()):
+    if y == 0:continue
+    plt.text(x,y+0.2,y,ha='center',fontsize=8)
 
-plt.bar(ua_dict.keys(),ua_dict.values())
-plt.xlabel('User agent')
-plt.ylabel('Frequency')
 plt.show()
