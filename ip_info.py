@@ -1,16 +1,15 @@
 import sys
 import re
 import collections
-import pandas as pd
 import matplotlib.pyplot as plt
 
-#fname = sys.argv[1]
-fname = 'access_logs.txt'
+fname = sys.argv[1]
+#fname = 'access_logs.txt'
 #fname = input('Enter name of log file:')
 
-#attacker_ip = sys.argv[2]
-#attarcker_ip = '112.204.10.15'
-attacker_ip = input('Enter target ip:')
+attacker_ip = sys.argv[2]
+#attacker_ip = '112.204.10.15'
+#attacker_ip = input('Enter target ip:')
 
 log_regex = re.compile((r'(\d+\.\d+\.\d+\.\d+)\s'     #host ip
                        r'(\S+)\s'    #rfc1413
@@ -26,6 +25,10 @@ status_list = ['1XX','2XX','3XX','4XX','5XX']
 status_dict = {i:0 for i in status_list}
 
 depth_dict = {}
+
+#factor to check various ratios of inputs
+start = 0
+factor = 1
 
 #initialize active_hrs_dict with 0 on all hours
 active_hrs_dict = {}
@@ -51,7 +54,8 @@ with open(fname,'r') as infile:
             print(line)
             
         #check if the host ip matches our target's ip
-        if log_segments[0] == attacker_ip:
+        if log_segments[0] == attacker_ip and start%factor == 0:
+            start = start + 1
             
             #count active hour frequencies
             hour = log_segments[3][12:14]
@@ -69,8 +73,11 @@ with open(fname,'r') as infile:
                 depth_dict[depth] = depth_dict[depth] + 1
             else:
                 depth_dict[depth] = 1
+        else:
+            start = start + 1
 
 plt.subplot(2,2,1)
+plt.title('Active Hours')
 plt.bar(active_hrs_dict.keys(),active_hrs_dict.values())
 plt.xlabel('Time of day')
 plt.ylabel('Activity')
@@ -79,6 +86,7 @@ for (x,y) in list(active_hrs_dict.items()):
     plt.text(x,y+0.2,y,ha='center',fontsize=8)
 
 plt.subplot(2,2,2)
+plt.title('Ratio of successful responses codes')
 plt.bar(status_dict.keys(),status_dict.values())
 plt.xlabel('Status codes')
 plt.ylabel('Frequencies')
@@ -87,6 +95,7 @@ for (x,y) in list(status_dict.items()):
     plt.text(x,y+0.2,y,ha='center',fontsize=8)
 
 plt.subplot(2,2,3)
+plt.title('Ratio of crawl depths')
 plt.bar(depth_dict.keys(),depth_dict.values())
 plt.xlabel('Crawl depth')
 plt.ylabel('Frequency')
